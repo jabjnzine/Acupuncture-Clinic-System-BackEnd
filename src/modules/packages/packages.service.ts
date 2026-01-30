@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Between } from 'typeorm';
 import { Package } from './entities/package.entity';
 import { PatientPackage, PatientPackageStatus } from './entities/patient-package.entity';
 import { PackageUsage } from './entities/package-usage.entity';
@@ -35,14 +35,14 @@ export class PackagesService {
     limit = 20,
   ): Promise<{ data: Package[]; total: number; page: number; limit: number; totalPages: number }> {
     const query = this.packageRepository
-      .createQueryBuilder('package')
-      .leftJoinAndSelect('package.service', 'service');
+      .createQueryBuilder('pkg')
+      .leftJoinAndSelect('pkg.service', 'service');
 
     if (activeOnly) {
-      query.where('package.is_active = :isActive', { isActive: true });
+      query.where('pkg.is_active = :isActive', { isActive: true });
     }
 
-    query.orderBy('package.name', 'ASC');
+    query.orderBy('pkg.name', 'ASC');
 
     const skip = (page - 1) * limit;
     query.skip(skip).take(limit);
@@ -113,8 +113,8 @@ export class PackagesService {
     const now = new Date();
     return this.patientPackageRepository
       .createQueryBuilder('pp')
-      .leftJoinAndSelect('pp.package', 'package')
-      .leftJoinAndSelect('package.service', 'service')
+      .leftJoinAndSelect('pp.package', 'pkg')
+      .leftJoinAndSelect('pkg.service', 'service')
       .where('pp.patient_id = :patientId', { patientId })
       .andWhere('pp.status = :status', { status: PatientPackageStatus.ACTIVE })
       .andWhere('pp.expiry_date >= :now', { now })
@@ -130,33 +130,32 @@ export class PackagesService {
     month?: string;
   }): Promise<{ data: PatientPackage[]; total: number; page: number; limit: number; totalPages: number }> {
     const page = params?.page || 1;
-    const limit = params?.limit || 50;
+    const limit = params?.limit || 10;
     const skip = (page - 1) * limit;
 
-    const query = this.patientPackageRepository
-      .createQueryBuilder('pp')
-      .leftJoinAndSelect('pp.package', 'package')
-      .leftJoinAndSelect('package.service', 'service')
-      .leftJoinAndSelect('pp.patient', 'patient');
-
-    // Filter by status
+    // Build where conditions
+    const whereConditions: any = {};
+    
     if (params?.status) {
-      query.andWhere('pp.status = :status', { status: params.status });
+      whereConditions.status = params.status;
     }
 
-    // Filter by month (YYYY-MM format)
+    // Month filter (YYYY-MM format)
     if (params?.month) {
-      const [year, month] = params.month.split('-').map(Number);
-      const startDate = new Date(year, month - 1, 1);
-      const endDate = new Date(year, month, 0);
-      query.andWhere('pp.purchase_date >= :startDate', { startDate });
-      query.andWhere('pp.purchase_date <= :endDate', { endDate });
+      const [year, monthNum] = params.month.split('-').map(Number);
+      const startDate = new Date(year, monthNum - 1, 1);
+      const endDate = new Date(year, monthNum, 0); // Last day of month
+      whereConditions.purchaseDate = Between(startDate, endDate);
     }
+    
+    const [data, total] = await this.patientPackageRepository.findAndCount({
+      where: whereConditions,
+      relations: ['package', 'patient'],
+      order: { createdAt: 'DESC' },
+      skip,
+      take: limit,
+    });
 
-    query.orderBy('pp.created_at', 'DESC');
-    query.skip(skip).take(limit);
-
-    const [data, total] = await query.getManyAndCount();
     const totalPages = Math.ceil(total / limit);
 
     return { data, total, page, limit, totalPages };
