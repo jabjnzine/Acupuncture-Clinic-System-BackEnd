@@ -3,18 +3,22 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
+import { PatientPackage } from './patient-package.entity';
 
 @Entity('package_usages')
 export class PackageUsage {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  // แพ็คเกจของผู้ป่วย (เก็บ ID ตรงๆ ไม่ใช้ FK)
-  @Column({ name: 'patient_package_id', type: 'uuid' })
-  patientPackageId: string;
+  // แพ็คเกจของผู้ป่วย (FK relation)
+  @ManyToOne(() => PatientPackage, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'patient_package_id' })
+  patientPackage: PatientPackage;
 
-  // การรักษาที่เกี่ยวข้อง (optional)
+  // การรักษาที่เกี่ยวข้อง (optional, ไม่ต้อง FK เพราะอาจไม่มี treatment)
   @Column({ name: 'treatment_id', type: 'uuid', nullable: true })
   treatmentId?: string;
 
@@ -29,3 +33,4 @@ export class PackageUsage {
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }
+

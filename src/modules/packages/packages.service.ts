@@ -196,9 +196,9 @@ export class PackagesService {
     }
 
     try {
-      // Create usage record
+      // Create usage record using relation
       const usage = new PackageUsage();
-      usage.patientPackageId = dto.patientPackageId;
+      usage.patientPackage = patientPackage;
       usage.treatmentId = dto.treatmentId;
       usage.usageDate = dto.usageDate ? new Date(dto.usageDate) : new Date();
       usage.notes = dto.notes;
@@ -221,7 +221,7 @@ export class PackagesService {
 
   async getPackageUsages(patientPackageId: string): Promise<PackageUsage[]> {
     return this.packageUsageRepository.find({
-      where: { patientPackageId },
+      where: { patientPackage: { id: patientPackageId } },
       order: { usageDate: 'DESC' },
     });
   }
