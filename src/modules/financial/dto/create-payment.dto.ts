@@ -16,7 +16,7 @@ export class CreatePaymentDto {
   invoiceId: string;
 
   @IsNumber()
-  @Min(0.01)
+  @Min(0)
   @IsNotEmpty()
   amount: number;
 
