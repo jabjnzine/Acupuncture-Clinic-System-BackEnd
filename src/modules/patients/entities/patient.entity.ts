@@ -43,6 +43,22 @@ export class Patient {
   @Column({ nullable: true })
   email: string;
 
+  // ID Number: Thai National ID (13 digits) or Passport Number
+  @Column({ name: 'id_number', nullable: true })
+  idNumber: string;
+
+  // Type of ID: national_id or passport
+  @Column({ name: 'id_type', nullable: true, default: 'national_id' })
+  idType: string;
+
+  // Nationality for foreigners
+  @Column({ nullable: true, default: 'Thai' })
+  nationality: string;
+
+  // Nickname (ชื่อเล่น)
+  @Column({ nullable: true })
+  nickname: string;
+
   @Column({ type: 'text', nullable: true })
   address: string;
 

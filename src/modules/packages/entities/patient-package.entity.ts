@@ -5,7 +5,6 @@ import {
   CreateDateColumn,
   ManyToOne,
   JoinColumn,
-  OneToMany,
 } from 'typeorm';
 import { Patient } from '../../patients/entities/patient.entity';
 import { Package } from './package.entity';
@@ -73,11 +72,9 @@ export class PatientPackage {
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @OneToMany('PackageUsage', 'patientPackage')
-  usages: any[];
-
   // Computed
   get remainingSessions(): number {
     return this.totalSessions - this.usedSessions;
   }
 }
+

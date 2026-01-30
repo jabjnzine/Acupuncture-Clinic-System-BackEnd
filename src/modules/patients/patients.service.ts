@@ -48,7 +48,20 @@ export class PatientsService {
    * Create a new patient
    */
   async create(createPatientDto: CreatePatientDto): Promise<Patient> {
-    const hnNumber = await this.generateHnNumber();
+    // Use provided HN (for import) or generate new one
+    let hnNumber = createPatientDto.hnNumber;
+    
+    if (hnNumber) {
+      // Check if HN already exists
+      const existing = await this.patientRepository.findOne({
+        where: { hnNumber },
+      });
+      if (existing) {
+        throw new ConflictException(`รหัส HN ${hnNumber} มีอยู่ในระบบแล้ว`);
+      }
+    } else {
+      hnNumber = await this.generateHnNumber();
+    }
 
     const patient = this.patientRepository.create({
       ...createPatientDto,
@@ -59,6 +72,31 @@ export class PatientsService {
     });
 
     return this.patientRepository.save(patient);
+  }
+
+  /**
+   * Bulk import patients
+   */
+  async bulkImport(
+    patients: CreatePatientDto[],
+  ): Promise<{ success: number; failed: number; errors: string[] }> {
+    const errors: string[] = [];
+    let success = 0;
+    let failed = 0;
+
+    for (const patientData of patients) {
+      try {
+        await this.create(patientData);
+        success++;
+      } catch (error) {
+        failed++;
+        errors.push(
+          `${patientData.firstName} ${patientData.lastName}: ${error.message}`,
+        );
+      }
+    }
+
+    return { success, failed, errors };
   }
 
   /**
@@ -109,6 +147,40 @@ export class PatientsService {
       limit,
       totalPages: Math.ceil(total / limit),
     };
+  }
+
+  /**
+   * Find all patients for dropdown (no pagination, minimal fields)
+   */
+  async findAllForDropdown(search?: string): Promise<
+    { id: string; firstName: string; lastName: string; hnNumber: string; nickname?: string }[]
+  > {
+    const queryBuilder = this.patientRepository.createQueryBuilder('patient');
+
+    // Select only minimal fields
+    queryBuilder.select([
+      'patient.id',
+      'patient.firstName',
+      'patient.lastName',
+      'patient.hnNumber',
+      'patient.nickname',
+    ]);
+
+    // Optional search
+    if (search) {
+      queryBuilder.andWhere(
+        '(patient.hn_number ILIKE :search OR patient.first_name ILIKE :search OR patient.last_name ILIKE :search OR patient.nickname ILIKE :search)',
+        { search: `%${search}%` },
+      );
+    }
+
+    // Only active patients
+    queryBuilder.andWhere('patient.is_active = :isActive', { isActive: true });
+
+    // Order by name
+    queryBuilder.orderBy('patient.first_name', 'ASC');
+
+    return queryBuilder.getMany();
   }
 
   /**

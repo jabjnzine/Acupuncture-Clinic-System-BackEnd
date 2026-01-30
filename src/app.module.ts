@@ -17,6 +17,7 @@ import { AuthModule } from './modules/auth';
 import { DatabaseModule } from './database';
 import { ServicesModule } from './modules/services/services.module';
 import { PackagesModule } from './modules/packages/packages.module';
+import { SettingsModule } from './modules/settings/settings.module';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { PackagesModule } from './modules/packages/packages.module';
     DatabaseModule,
     ServicesModule,
     PackagesModule,
+    SettingsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

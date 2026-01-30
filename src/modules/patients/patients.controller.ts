@@ -36,6 +36,19 @@ export class PatientsController {
   }
 
   /**
+   * นำเข้าข้อมูลผู้ป่วยจำนวนมาก (Bulk Import)
+   */
+  @Post('bulk-import')
+  async bulkImport(@Body() patients: CreatePatientDto[]) {
+    const result = await this.patientsService.bulkImport(patients);
+    return {
+      success: true,
+      message: `นำเข้าข้อมูลสำเร็จ ${result.success} รายการ`,
+      data: result,
+    };
+  }
+
+  /**
    * ดึงรายการผู้ป่วยทั้งหมด
    */
   @Get()
@@ -44,6 +57,18 @@ export class PatientsController {
     return {
       success: true,
       ...result,
+    };
+  }
+
+  /**
+   * ดึงรายการผู้ป่วยทั้งหมดสำหรับ dropdown (ไม่มี pagination)
+   */
+  @Get('dropdown')
+  async findAllForDropdown(@Query('search') search?: string) {
+    const result = await this.patientsService.findAllForDropdown(search);
+    return {
+      success: true,
+      data: result,
     };
   }
 

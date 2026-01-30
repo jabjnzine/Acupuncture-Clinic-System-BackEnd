@@ -165,7 +165,7 @@ export class PackagesService {
   async findPatientPackageById(id: string): Promise<PatientPackage> {
     const pp = await this.patientPackageRepository.findOne({
       where: { id },
-      relations: ['package', 'package.service', 'patient', 'usages'],
+      relations: ['package', 'package.service', 'patient'],
     });
     if (!pp) {
       throw new NotFoundException(`ไม่พบแพ็คเกจของผู้ป่วย ID: ${id}`);
@@ -195,23 +195,28 @@ export class PackagesService {
       throw new BadRequestException('แพ็คเกจนี้ใช้ครบจำนวนครั้งแล้ว');
     }
 
-    // Create usage record
-    const usage = this.packageUsageRepository.create({
-      patientPackageId: dto.patientPackageId,
-      treatmentId: dto.treatmentId,
-      usageDate: dto.usageDate ? new Date(dto.usageDate) : new Date(),
-      notes: dto.notes,
-    });
-    await this.packageUsageRepository.save(usage);
+    try {
+      // Create usage record
+      const usage = new PackageUsage();
+      usage.patientPackageId = dto.patientPackageId;
+      usage.treatmentId = dto.treatmentId;
+      usage.usageDate = dto.usageDate ? new Date(dto.usageDate) : new Date();
+      usage.notes = dto.notes;
+      
+      await this.packageUsageRepository.save(usage);
 
-    // Update used sessions
-    patientPackage.usedSessions += 1;
-    if (patientPackage.usedSessions >= patientPackage.totalSessions) {
-      patientPackage.status = PatientPackageStatus.COMPLETED;
+      // Update used sessions
+      patientPackage.usedSessions += 1;
+      if (patientPackage.usedSessions >= patientPackage.totalSessions) {
+        patientPackage.status = PatientPackageStatus.COMPLETED;
+      }
+      await this.patientPackageRepository.save(patientPackage);
+
+      return usage;
+    } catch (error) {
+      console.error('Error in useSession:', error);
+      throw new BadRequestException(`ไม่สามารถบันทึกการใช้คอร์สได้: ${error.message}`);
     }
-    await this.patientPackageRepository.save(patientPackage);
-
-    return usage;
   }
 
   async getPackageUsages(patientPackageId: string): Promise<PackageUsage[]> {

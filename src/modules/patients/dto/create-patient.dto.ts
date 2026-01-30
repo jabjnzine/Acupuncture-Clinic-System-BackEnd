@@ -7,11 +7,17 @@ import {
   IsArray,
   IsNotEmpty,
   MaxLength,
-  IsPhoneNumber,
+  ValidateIf,
 } from 'class-validator';
 import { Gender } from '../entities/patient.entity';
 
 export class CreatePatientDto {
+  // Optional: ใช้สำหรับ import รหัสเดิม ถ้าไม่ระบุระบบจะสร้างให้อัตโนมัติ
+  @IsString()
+  @IsOptional()
+  @MaxLength(20)
+  hnNumber?: string;
+
   @IsString()
   @IsNotEmpty({ message: 'กรุณากรอกชื่อ' })
   @MaxLength(100)
@@ -35,9 +41,29 @@ export class CreatePatientDto {
   @MaxLength(20)
   phone?: string;
 
+  @ValidateIf((o) => o.email !== '' && o.email !== null && o.email !== undefined)
   @IsEmail({}, { message: 'รูปแบบอีเมลไม่ถูกต้อง' })
   @IsOptional()
   email?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(20)
+  idNumber?: string;
+
+  @IsString()
+  @IsOptional()
+  idType?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  nationality?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  nickname?: string;
 
   @IsString()
   @IsOptional()
